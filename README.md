@@ -52,15 +52,47 @@ scripts/
 tests/
 ```
 
-## Install PowerDNS on OPNsense
+## Quick install on OPNsense
 
-A generic helper script is included:
+Run as root on OPNsense:
 
 ```sh
-sudo ./scripts/install-powerdns-opnsense.sh
+fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
-The script:
+If `curl` is installed:
+
+```sh
+curl -fsSL https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+```
+
+The bootstrap script downloads the release archive, optionally prepares PowerDNS, installs the OPNsense MVC plugin files, then restarts `configd` and the web GUI.
+
+Useful overrides:
+
+```sh
+# Install plugin only, without installing/preparing the PowerDNS package/config
+INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+
+# Install a specific release
+VERSION=v0.1.1 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+```
+
+The menu appears under:
+
+```text
+Services > PowerDNS Authoritative
+```
+
+## Install PowerDNS helper only
+
+A generic helper script is also included inside the repository/archive:
+
+```sh
+sh scripts/install-powerdns-opnsense.sh
+```
+
+The helper script:
 
 - installs `powerdns` and `sqlite3` via `pkg`
 - creates a generic SQLite backend database if missing
@@ -74,12 +106,12 @@ Useful environment variables:
 PDNS_DB=/var/db/pdns/pdns.sqlite3 \
 PDNS_CONF=/usr/local/etc/pdns/pdns.conf \
 ENABLE_SERVICE=no \
-./scripts/install-powerdns-opnsense.sh
+sh scripts/install-powerdns-opnsense.sh
 ```
 
-## Install the plugin prototype manually
+## Manual plugin install
 
-Until packaged as a FreeBSD/OPNsense plugin, copy the tree into place:
+Until packaged as a FreeBSD/OPNsense plugin, you can still copy the tree into place manually:
 
 ```sh
 cp -a src/opnsense/mvc/app/models/OPNsense/PowerDNS /usr/local/opnsense/mvc/app/models/OPNsense/
@@ -90,12 +122,6 @@ cp -a src/opnsense/service/conf/actions.d/actions_powerdns.conf /usr/local/opnse
 chmod 755 /usr/local/opnsense/scripts/OPNsense/PowerDNS/*.py
 service configd restart
 configctl webgui restart
-```
-
-The menu appears under:
-
-```text
-Services > PowerDNS Authoritative
 ```
 
 ## Test
