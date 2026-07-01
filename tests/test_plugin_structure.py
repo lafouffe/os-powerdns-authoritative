@@ -23,6 +23,7 @@ class PluginStructureTest(unittest.TestCase):
             'mvc/app/views/OPNsense/PowerDNS/zones.volt',
             'service/conf/actions.d/actions_powerdns.conf',
             'scripts/OPNsense/PowerDNS/render_config.py',
+            'scripts/OPNsense/PowerDNS/autoconfigure.py',
             'scripts/OPNsense/PowerDNS/pdns_api.py',
         ]
         missing = [p for p in required if not (SRC / p).is_file()]
@@ -37,13 +38,18 @@ class PluginStructureTest(unittest.TestCase):
         ]:
             self.assertRegex(xml, rf'<{field}\b')
 
+    def test_readme_has_no_unrelated_acme_references(self):
+        readme = (ROOT / 'README.md').read_text().lower()
+        for forbidden in ['letsencrypt', "let's encrypt", 'acme', 'lego']:
+            self.assertNotIn(forbidden, readme)
+
     def test_zoraxy_is_not_part_of_plugin_scope(self):
         combined = '\n'.join(p.read_text(errors='ignore') for p in SRC.rglob('*') if p.is_file())
         self.assertNotRegex(combined.lower(), r'zoraxy|lego')
 
     def test_service_actions_cover_config_and_lifecycle(self):
         actions = (SRC / 'service/conf/actions.d/actions_powerdns.conf').read_text()
-        for action in ['render','checkconfig','start','stop','restart','status','reload','backupdb','zones','zone','createzone','deletezone','upsert','delete']:
+        for action in ['autoconfigure','render','checkconfig','start','stop','restart','status','reload','backupdb','filterreload','zones','zone','createzone','deletezone','upsert','delete']:
             self.assertIn(f'[{action}]', actions)
 
     def test_zones_view_has_basic_record_editor(self):

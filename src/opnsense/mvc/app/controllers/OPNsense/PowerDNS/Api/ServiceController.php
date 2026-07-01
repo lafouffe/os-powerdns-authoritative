@@ -20,10 +20,12 @@ class ServiceController extends ApiControllerBase
     public function reconfigureAction()
     {
         $backend = new \OPNsense\Core\Backend();
+        $auto = trim($backend->configdRun('powerdns autoconfigure'));
         $render = trim($backend->configdRun('powerdns render'));
         $check = trim($backend->configdRun('powerdns checkconfig'));
+        $filter = trim($backend->configdRun('filter reload'));
         $restart = trim($backend->configdRun('powerdns restart'));
-        return array('render' => $render, 'checkconfig' => $check, 'restart' => $restart);
+        return array('autoconfigure' => $auto, 'render' => $render, 'checkconfig' => $check, 'filter' => $filter, 'restart' => $restart);
     }
     public function backupdbAction() { return $this->configctl('backupdb'); }
 }

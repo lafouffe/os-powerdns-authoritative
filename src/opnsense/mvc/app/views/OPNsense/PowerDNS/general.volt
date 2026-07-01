@@ -9,6 +9,10 @@ $(document).ready(function() {
         saveFormToEndpoint(url='/api/powerdns/general/set', formid='frm_general_settings', callback_ok=function() {
             $('#saveAct_progress').addClass('fa fa-spinner fa-pulse');
             ajaxCall('/api/powerdns/service/reconfigure', {}, function(data) {
+                mapDataToFormUI({'frm_general_settings':'/api/powerdns/general/get'}).done(function(){
+                    formatTokenizersUI();
+                    $('.selectpicker').selectpicker('refresh');
+                });
                 ajaxCall('/api/powerdns/service/status', {}, function(status){ updateServiceStatusUI(status['response']); });
                 $('#saveAct_progress').removeClass('fa fa-spinner fa-pulse');
             });

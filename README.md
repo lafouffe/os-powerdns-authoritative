@@ -17,24 +17,30 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
   - service user/group
   - log level
   - webserver/API address, port, allow-from, and API key
+  - automatic API key generation when enabled and empty
+  - automatic TCP/UDP DNS firewall rules on selected listen interfaces
   - safe custom `pdns.conf` options
 - Basic zone/RRset UI through the PowerDNS HTTP API:
-  - list zones
+  - list/create/delete zones
   - list RRsets
   - add/edit/delete RRsets
-- No reverse proxy, ACME, Let's Encrypt, or DNS-challenge logic.
 
 ## Scope and safety
 
 This plugin intentionally does not manage:
 
-- firewall/NAT rules
+- NAT rules
 - registrar delegation
 - DNSSEC DS publication
-- ACME/lego/Zoraxy automation
 - recursive DNS
 
-Those are deployment-specific concerns and should be handled separately.
+Firewall behavior:
+
+- When the service is enabled and listen interfaces are selected, the plugin creates missing inbound TCP/UDP rules for the configured DNS port on those interfaces.
+- Existing equivalent pass rules are detected and not duplicated.
+- The plugin does not remove firewall rules automatically when disabled; review firewall policy manually if you no longer want to expose DNS.
+
+Those remaining items are deployment-specific concerns and should be handled separately.
 
 Default settings are generic and should not expose the PowerDNS API beyond localhost unless explicitly configured.
 
@@ -75,7 +81,7 @@ Useful overrides:
 INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Install a specific release
-VERSION=v0.1.1 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.2 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
 The menu appears under:
