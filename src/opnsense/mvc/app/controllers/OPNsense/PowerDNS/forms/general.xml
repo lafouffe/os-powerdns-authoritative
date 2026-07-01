@@ -1,0 +1,18 @@
+<form>
+  <field><id>general.enabled</id><label>Enabled</label><type>checkbox</type><help>Enable and manage the PowerDNS authoritative service.</help></field>
+  <field><id>general.launch</id><label>Backend</label><type>dropdown</type><help>PowerDNS backend launch setting. Use gsqlite3 for UI/API editing.</help></field>
+  <field><id>general.gsqlite3_database</id><label>SQLite database</label><type>text</type></field>
+  <field><id>general.listen_interfaces</id><label>Listen interfaces</label><type>select_multiple</type><style>selectpicker</style><help>Select one or more OPNsense interfaces. Their current IPv4 addresses will be rendered into PowerDNS local-address.</help></field>
+  <field><id>general.local_address</id><label>Listen address override</label><type>text</type><help>Optional comma-separated IP addresses. When set, this overrides Listen interfaces. Leave empty for automatic interface-based binding or PowerDNS default binding.</help></field>
+  <field><id>general.local_port</id><label>Listen port</label><type>text</type></field>
+  <field><id>general.setuid</id><label>Run as user</label><type>text</type></field>
+  <field><id>general.setgid</id><label>Run as group</label><type>text</type></field>
+  <field><id>general.loglevel</id><label>Log level</label><type>text</type></field>
+  <field><id>general.webserver</id><label>API webserver enabled</label><type>checkbox</type></field>
+  <field><id>general.webserver_address</id><label>API listen address</label><type>text</type></field>
+  <field><id>general.webserver_port</id><label>API listen port</label><type>text</type></field>
+  <field><id>general.webserver_allow_from</id><label>API allow-from</label><type>text</type></field>
+  <field><id>general.api</id><label>HTTP API enabled</label><type>checkbox</type></field>
+  <field><id>general.api_key</id><label>API key</label><type>text</type><help>Stored in OPNsense config; visible here for PowerDNS API setup. Do not expose publicly.</help></field>
+  <field><id>general.custom_options</id><label>Extra pdns.conf options</label><type>textbox</type><help>One key=value per line. include-dir/include-file are blocked by the renderer.</help></field>
+</form>

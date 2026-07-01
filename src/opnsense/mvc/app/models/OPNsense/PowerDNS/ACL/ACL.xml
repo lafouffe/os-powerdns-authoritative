@@ -1,0 +1,9 @@
+<acl>
+    <page-powerdns-all>
+        <name>PowerDNS Authoritative: all pages</name>
+        <patterns>
+            <pattern>ui/powerdns/*</pattern>
+            <pattern>api/powerdns/*</pattern>
+        </patterns>
+    </page-powerdns-all>
+</acl>

@@ -1,0 +1,8 @@
+<menu>
+  <Services>
+    <PowerDNS VisibleName="PowerDNS Authoritative" cssClass="fa fa-database" url="/ui/powerdns/general/index">
+      <General VisibleName="Settings" url="/ui/powerdns/general/index"/>
+      <Zones VisibleName="Zones" url="/ui/powerdns/zones/index"/>
+    </PowerDNS>
+  </Services>
+</menu>

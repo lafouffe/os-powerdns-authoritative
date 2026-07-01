@@ -1,0 +1,23 @@
+<model>
+    <mount>//OPNsense/PowerDNS</mount>
+    <description>PowerDNS Authoritative configuration</description>
+    <version>0.2.0</version>
+    <items>
+        <enabled type="BooleanField"><Default>1</Default><Required>Y</Required></enabled>
+        <launch type="OptionField"><Default>gsqlite3</Default><Required>Y</Required><OptionValues><gsqlite3>gsqlite3</gsqlite3><bind>bind</bind></OptionValues></launch>
+        <gsqlite3_database type="TextField"><Default>/var/db/pdns/pdns.sqlite3</Default><Required>Y</Required></gsqlite3_database>
+        <listen_interfaces type="InterfaceField"><Required>N</Required><Multiple>Y</Multiple></listen_interfaces>
+        <local_address type="TextField"><Required>N</Required></local_address>
+        <local_port type="PortField"><Default>53</Default><Required>Y</Required></local_port>
+        <setuid type="TextField"><Default>pdns</Default><Required>Y</Required></setuid>
+        <setgid type="TextField"><Default>pdns</Default><Required>Y</Required></setgid>
+        <loglevel type="IntegerField"><Default>4</Default><MinimumValue>0</MinimumValue><MaximumValue>9</MaximumValue><Required>Y</Required></loglevel>
+        <webserver type="BooleanField"><Default>1</Default><Required>Y</Required></webserver>
+        <webserver_address type="NetworkField"><Default>127.0.0.1</Default><Required>Y</Required><NetMaskAllowed>N</NetMaskAllowed></webserver_address>
+        <webserver_port type="PortField"><Default>8081</Default><Required>Y</Required></webserver_port>
+        <webserver_allow_from type="TextField"><Default>127.0.0.1,::1</Default><Required>Y</Required></webserver_allow_from>
+        <api type="BooleanField"><Default>1</Default><Required>Y</Required></api>
+        <api_key type="TextField"><Required>Y</Required></api_key>
+        <custom_options type="TextField"><Required>N</Required></custom_options>
+    </items>
+</model>
