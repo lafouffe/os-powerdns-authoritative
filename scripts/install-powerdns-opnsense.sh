@@ -27,7 +27,7 @@ fi
 log "Installing PowerDNS Authoritative with SQLite backend"
 
 if command -v pkg >/dev/null 2>&1; then
-  run pkg install -y powerdns sqlite3 || {
+  run pkg install -y sqlite3 || {
     echo "ERROR: pkg install failed. On some OPNsense installs, powerdns may need to be built from ports." >&2
     echo "Hint: opnsense-code ports && cd /usr/ports/dns/powerdns && make config install clean" >&2
     exit 1
