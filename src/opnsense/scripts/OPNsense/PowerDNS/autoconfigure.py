@@ -3,6 +3,7 @@ import argparse
 import json
 import re
 import secrets
+import subprocess
 import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
@@ -93,6 +94,7 @@ def apply_config(path=CONF_XML):
         'api_key_generated': False,
         'firewall_rules_added': False,
         'firewall_rule_count_added': 0,
+        'service_enabled': False,
     }
 
     enabled = is_true(pdns.findtext('enabled'))
@@ -103,6 +105,11 @@ def apply_config(path=CONF_XML):
         changed['api_key_generated'] = True
 
     if enabled:
+        try:
+            subprocess.run(['sysrc', 'pdns_enable=YES'], capture_output=True, text=True, timeout=10)
+            changed['service_enabled'] = True
+        except Exception:
+            changed['service_enabled'] = False
         listen_interfaces = split_list(pdns.findtext('listen_interfaces'))
         port = (pdns.findtext('local_port') or '53').strip() or '53'
         if listen_interfaces:
