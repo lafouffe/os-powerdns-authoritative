@@ -31,6 +31,14 @@ class FakePowerDNS(http.server.BaseHTTPRequestHandler):
         body = self.rfile.read(int(self.headers.get('Content-Length','0'))).decode()
         self.__class__.requests.append(('PATCH', self.path, self.headers.get('X-API-Key'), json.loads(body)))
         return self._send(204)
+    def do_POST(self):
+        body = self.rfile.read(int(self.headers.get('Content-Length','0'))).decode()
+        payload = json.loads(body)
+        self.__class__.requests.append(('POST', self.path, self.headers.get('X-API-Key'), payload))
+        return self._send(201, {'id': payload.get('name'), 'name': payload.get('name'), 'kind': payload.get('kind')})
+    def do_DELETE(self):
+        self.__class__.requests.append(('DELETE', self.path, self.headers.get('X-API-Key'), None))
+        return self._send(204)
 
 class PowerDNSApiClientTest(unittest.TestCase):
     @classmethod
@@ -61,6 +69,18 @@ class PowerDNSApiClientTest(unittest.TestCase):
         self.assertEqual(patch[1], '/api/v1/servers/localhost/zones/example.org.')
         self.assertEqual(patch[3]['rrsets'][0]['changetype'], 'REPLACE')
         self.assertEqual(patch[3]['rrsets'][0]['records'][0]['content'], '203.0.113.10')
+    def test_create_and_delete_zone_use_powerdns_zone_api(self):
+        mod = self.load_module()
+        client = mod.PowerDNSClient(f'http://127.0.0.1:{self.port}', 'secret')
+        client.create_zone('new.example.org', 'Native', 'ns1.example.org.\nns2.example.org.')
+        post = [r for r in FakePowerDNS.requests if r[0] == 'POST'][-1]
+        self.assertEqual(post[1], '/api/v1/servers/localhost/zones')
+        self.assertEqual(post[3]['name'], 'new.example.org.')
+        self.assertEqual(post[3]['kind'], 'Native')
+        self.assertEqual(post[3]['nameservers'], ['ns1.example.org.', 'ns2.example.org.'])
+        client.delete_zone('new.example.org')
+        delete = [r for r in FakePowerDNS.requests if r[0] == 'DELETE'][-1]
+        self.assertEqual(delete[1], '/api/v1/servers/localhost/zones/new.example.org.')
 
 if __name__ == '__main__':
     unittest.main()

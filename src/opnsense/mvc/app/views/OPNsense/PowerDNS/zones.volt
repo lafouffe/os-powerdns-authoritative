@@ -94,6 +94,43 @@ function renderRecords(){
   $('#recordCount').text(rrsets.length + ' RRsets');
 }
 
+function openAddZone(){
+  $('#zoneName').val('');
+  $('#zoneKind').val('Native');
+  $('#zoneNameservers').val('');
+  $('#dialogZone').modal('show');
+}
+
+function saveZone(){
+  var payload = {
+    zone: $('#zoneName').val(),
+    kind: $('#zoneKind').val(),
+    nameservers: $('#zoneNameservers').val()
+  };
+  if (!payload.zone) {
+    showMessage(BootstrapDialog.TYPE_WARNING, 'Missing field', 'Zone name is required.');
+    return;
+  }
+  $('#saveZoneBtn').prop('disabled', true);
+  ajaxCall('/api/powerdns/zones/createZone', payload, function(data){
+    $('#saveZoneBtn').prop('disabled', false);
+    if (data && data.error) { showMessage(BootstrapDialog.TYPE_DANGER, 'PowerDNS error', data.error); return; }
+    $('#dialogZone').modal('hide');
+    loadZones();
+  });
+}
+
+function deleteZone(){
+  if (!selectedZone) { return; }
+  if (!confirm('Delete zone ' + selectedZone + ' and all its records ?')) { return; }
+  ajaxCall('/api/powerdns/zones/deleteZone', {zone: selectedZone}, function(data){
+    if (data && data.error) { showMessage(BootstrapDialog.TYPE_DANGER, 'PowerDNS error', data.error); return; }
+    selectedZone = '';
+    rrsets = [];
+    loadZones();
+  });
+}
+
 function openAddRecord(){
   $('#dialogRecordTitle').text('Add DNS record');
   $('#recordZone').val(selectedZone);
@@ -155,6 +192,9 @@ function deleteRecord(idx){
 $(document).ready(function(){
   $('#zoneSelect').change(function(){ loadZone($(this).val()); });
   $('#refreshZonesBtn').click(loadZones);
+  $('#addZoneBtn').click(openAddZone);
+  $('#deleteZoneBtn').click(deleteZone);
+  $('#saveZoneBtn').click(saveZone);
   $('#addRecordBtn, #addRecordFooterBtn').click(openAddRecord);
   $('#saveRecordBtn').click(saveRecord);
   loadZones();
@@ -169,6 +209,8 @@ $(document).ready(function(){
     <label for="zoneSelect" class="control-label">Zone</label>
     <select id="zoneSelect" class="form-control input-sm"></select>
     <button id="refreshZonesBtn" type="button" class="btn btn-xs btn-default"><span class="fa fa-refresh"></span> Refresh</button>
+    <button id="addZoneBtn" type="button" class="btn btn-xs btn-default"><span class="fa fa-plus-square"></span> Add zone</button>
+    <button id="deleteZoneBtn" type="button" class="btn btn-xs btn-danger"><span class="fa fa-trash-o"></span> Delete zone</button>
     <button id="addRecordBtn" type="button" class="btn btn-xs btn-primary"><span class="fa fa-plus"></span> Add record</button>
     <span id="recordCount" class="pdns-muted"></span>
   </div>
@@ -191,6 +233,28 @@ $(document).ready(function(){
       </tr>
     </tfoot>
   </table>
+</div>
+
+<div class="modal fade" id="dialogZone" tabindex="-1" role="dialog" aria-labelledby="dialogZoneTitle">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+        <h4 class="modal-title" id="dialogZoneTitle">Add DNS zone</h4>
+      </div>
+      <div class="modal-body">
+        <form class="form-horizontal" id="zoneForm">
+          <div class="form-group"><label class="col-sm-3 control-label">Zone</label><div class="col-sm-9"><input class="form-control" id="zoneName" placeholder="example.org."></div></div>
+          <div class="form-group"><label class="col-sm-3 control-label">Kind</label><div class="col-sm-9"><select class="form-control" id="zoneKind"><option>Native</option><option>Master</option><option>Slave</option></select></div></div>
+          <div class="form-group"><label class="col-sm-3 control-label">Nameservers</label><div class="col-sm-9"><textarea class="form-control" id="zoneNameservers" rows="3" placeholder="ns1.example.org.&#10;ns2.example.org."></textarea><span class="help-block">Optional. One nameserver per line. PowerDNS can create the zone without this field.</span></div></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="saveZoneBtn"><span class="fa fa-save"></span> Save zone</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal fade" id="dialogRecord" tabindex="-1" role="dialog" aria-labelledby="dialogRecordTitle">

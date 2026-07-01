@@ -43,12 +43,12 @@ class PluginStructureTest(unittest.TestCase):
 
     def test_service_actions_cover_config_and_lifecycle(self):
         actions = (SRC / 'service/conf/actions.d/actions_powerdns.conf').read_text()
-        for action in ['render','checkconfig','start','stop','restart','status','reload','backupdb','zones','zone','upsert','delete']:
+        for action in ['render','checkconfig','start','stop','restart','status','reload','backupdb','zones','zone','createzone','deletezone','upsert','delete']:
             self.assertIn(f'[{action}]', actions)
 
     def test_zones_view_has_basic_record_editor(self):
         view = (SRC / 'mvc/app/views/OPNsense/PowerDNS/zones.volt').read_text()
-        for needle in ['pdns-records-table', 'addRecordBtn', 'addRecordFooterBtn', 'dialogRecord', 'recordZone', 'recordName', 'recordType', 'recordTtl', 'recordValues', 'saveRecord', 'deleteRecord']:
+        for needle in ['pdns-records-table', 'addZoneBtn', 'deleteZoneBtn', 'dialogZone', 'zoneName', 'zoneKind', 'saveZone', 'addRecordBtn', 'addRecordFooterBtn', 'dialogRecord', 'recordZone', 'recordName', 'recordType', 'recordTtl', 'recordValues', 'saveRecord', 'deleteRecord']:
             self.assertIn(needle, view)
         self.assertIn('table table-condensed table-hover table-striped', view)
         self.assertIn('fa fa-plus', view)

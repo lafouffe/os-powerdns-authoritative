@@ -34,20 +34,33 @@ class PowerDNSClient:
         except urllib.error.HTTPError as e:
             raw = e.read().decode(errors='replace')
             raise PowerDNSError('HTTP %s %s' % (e.code, raw))
+    def zone_name(self, zone):
+        return zone if zone.endswith('.') else zone + '.'
     def list_zones(self):
         return self.request('GET', f'/servers/{self.server}/zones')
     def get_zone(self, zone):
-        zone = zone if zone.endswith('.') else zone + '.'
+        zone = self.zone_name(zone)
         return self.request('GET', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}')
+    def create_zone(self, zone, kind='Native', nameservers=None):
+        zone = self.zone_name(zone)
+        kind = (kind or 'Native').strip()
+        body = {'name': zone, 'kind': kind}
+        ns = [x.strip() for x in (nameservers or '').split('\n') if x.strip()]
+        if ns:
+            body['nameservers'] = [self.zone_name(x) for x in ns]
+        return self.request('POST', f'/servers/{self.server}/zones', body)
+    def delete_zone(self, zone):
+        zone = self.zone_name(zone)
+        return self.request('DELETE', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}')
     def upsert_rrset(self, zone, name, rtype, ttl, records):
-        zone = zone if zone.endswith('.') else zone + '.'
-        name = name if name.endswith('.') else name + '.'
+        zone = self.zone_name(zone)
+        name = self.zone_name(name)
         rrset = {'name': name, 'type': rtype.upper(), 'ttl': int(ttl), 'changetype': 'REPLACE',
                  'records': [{'content': r, 'disabled': False} for r in records]}
         return self.request('PATCH', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}', {'rrsets':[rrset]})
     def delete_rrset(self, zone, name, rtype):
-        zone = zone if zone.endswith('.') else zone + '.'
-        name = name if name.endswith('.') else name + '.'
+        zone = self.zone_name(zone)
+        name = self.zone_name(name)
         rrset = {'name': name, 'type': rtype.upper(), 'changetype': 'DELETE', 'records': []}
         return self.request('PATCH', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}', {'rrsets':[rrset]})
 
@@ -64,6 +77,8 @@ def main(argv=None):
     sub = p.add_subparsers(dest='cmd', required=True)
     sub.add_parser('zones')
     z = sub.add_parser('zone'); z.add_argument('zone')
+    cz = sub.add_parser('create-zone'); cz.add_argument('zone'); cz.add_argument('kind'); cz.add_argument('nameservers', nargs='?', default='')
+    dz = sub.add_parser('delete-zone'); dz.add_argument('zone')
     u = sub.add_parser('upsert'); u.add_argument('zone'); u.add_argument('name'); u.add_argument('type'); u.add_argument('ttl'); u.add_argument('records')
     d = sub.add_parser('delete'); d.add_argument('zone'); d.add_argument('name'); d.add_argument('type')
     args = p.parse_args(argv)
@@ -71,6 +86,8 @@ def main(argv=None):
     try:
         if args.cmd == 'zones': out = c.list_zones()
         elif args.cmd == 'zone': out = c.get_zone(args.zone)
+        elif args.cmd == 'create-zone': out = c.create_zone(args.zone, args.kind, args.nameservers)
+        elif args.cmd == 'delete-zone': out = c.delete_zone(args.zone)
         elif args.cmd == 'upsert': out = c.upsert_rrset(args.zone, args.name, args.type, args.ttl, [x.strip() for x in args.records.split('\n') if x.strip()])
         elif args.cmd == 'delete': out = c.delete_rrset(args.zone, args.name, args.type)
         print(json.dumps(out if out is not None else {'ok': True}))

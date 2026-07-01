@@ -35,6 +35,20 @@ class ZonesController extends ApiControllerBase
         return $this->runJson(array('upsert', $zone, $name, $type, $ttl, $records));
     }
 
+    public function createZoneAction()
+    {
+        $zone = $this->request->getPost('zone');
+        $kind = $this->request->getPost('kind');
+        $nameservers = $this->request->getPost('nameservers');
+        return $this->runJson(array('createzone', $zone, $kind, $nameservers));
+    }
+
+    public function deleteZoneAction()
+    {
+        $zone = $this->request->getPost('zone');
+        return $this->runJson(array('deletezone', $zone));
+    }
+
     public function deleteRecordAction()
     {
         $zone = $this->request->getPost('zone');
