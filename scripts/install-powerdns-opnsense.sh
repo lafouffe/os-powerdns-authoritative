@@ -10,6 +10,11 @@ PDNS_DB="${PDNS_DB:-/var/db/pdns/pdns.sqlite3}"
 PDNS_CONF="${PDNS_CONF:-/usr/local/etc/pdns/pdns.conf}"
 ENABLE_SERVICE="${ENABLE_SERVICE:-no}"
 BACKEND="${BACKEND:-gsqlite3}"
+PORTSDIR="${PORTSDIR:-/usr/ports}"
+PDNS_PORT_ORIGIN="${PDNS_PORT_ORIGIN:-dns/powerdns}"
+PDNS_PORT_DIR="${PDNS_PORT_DIR:-/usr/ports/dns/powerdns}"
+PORTS_FETCH="${PORTS_FETCH:-yes}"
+PORTS_MAKE_ARGS="${PORTS_MAKE_ARGS:--DBATCH}"
 
 log() { printf '%s\n' "$*"; }
 run() { log "+ $*"; "$@"; }
@@ -28,13 +33,32 @@ log "Installing PowerDNS Authoritative with SQLite backend"
 
 if command -v pkg >/dev/null 2>&1; then
   run pkg install -y sqlite3 || {
-    echo "ERROR: pkg install failed. On some OPNsense installs, powerdns may need to be built from ports." >&2
-    echo "Hint: opnsense-code ports && cd /usr/ports/dns/powerdns && make config install clean" >&2
+    echo "ERROR: unable to install sqlite3 with pkg" >&2
     exit 1
   }
 else
   echo "ERROR: pkg command not found" >&2
   exit 1
+fi
+
+if command -v pdns_server >/dev/null 2>&1; then
+  log "PowerDNS server binary already present; skipping ports build"
+else
+  if [ "$PORTS_FETCH" = "yes" ] && [ ! -d "$PDNS_PORT_DIR" ]; then
+    if command -v opnsense-code >/dev/null 2>&1; then
+      run opnsense-code ports
+    else
+      echo "ERROR: $PDNS_PORT_DIR is missing and opnsense-code is not available" >&2
+      echo "Install/update the OPNsense ports tree first, or set PORTSDIR/PDNS_PORT_DIR." >&2
+      exit 1
+    fi
+  fi
+  if [ ! -d "$PDNS_PORT_DIR" ]; then
+    echo "ERROR: PowerDNS port directory not found: $PDNS_PORT_DIR" >&2
+    exit 1
+  fi
+  log "Building/installing PowerDNS from OPNsense ports: $PDNS_PORT_DIR"
+  run make -C "$PDNS_PORT_DIR" $PORTS_MAKE_ARGS install clean
 fi
 
 run mkdir -p "$(dirname "$PDNS_DB")" /usr/local/etc/pdns
@@ -163,10 +187,9 @@ Done.
 
 Next steps:
 1. Configure listener interface/IPs in the OPNsense PowerDNS Authoritative plugin.
-2. Generate/set a PowerDNS API key.
+2. Save & Apply in the plugin to auto-generate the API key and DNS firewall rules when enabled.
 3. Create or import zones.
-4. Add firewall rules for authoritative DNS only when ready.
-5. Enable and start the service when configuration has been verified:
+4. Start the service when configuration has been verified:
    sysrc pdns_enable=yes
    service pdns start
 EOF

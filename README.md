@@ -81,7 +81,7 @@ Useful overrides:
 INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Install a specific release
-VERSION=v0.1.2 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.3 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
 The menu appears under:
@@ -100,7 +100,10 @@ sh scripts/install-powerdns-opnsense.sh
 
 The helper script:
 
-- installs `powerdns` and `sqlite3` via `pkg`
+PowerDNS is installed from the OPNsense ports tree to avoid package-repository mismatch errors on OPNsense.
+
+- installs `sqlite3` via `pkg`
+- installs PowerDNS from the OPNsense ports tree (`opnsense-code ports`, then `/usr/ports/dns/powerdns`)
 - creates a generic SQLite backend database if missing
 - writes a safe localhost-only baseline `pdns.conf` if missing
 - does not configure site-specific IPs, zones, API ACLs, firewall rules, or registrar delegation
