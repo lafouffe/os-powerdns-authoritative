@@ -6,8 +6,13 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
 
 ## Features
 
-- FreeBSD/OPNsense `.pkg` release asset for the GUI plugin.
-- Optional PowerDNS binary bundle release asset so users do not have to fetch/build the OPNsense ports tree.
+- One-file all-in-one FreeBSD/OPNsense `.pkg` release asset:
+  - OPNsense GUI plugin
+  - embedded PowerDNS Authoritative binary package
+  - embedded direct runtime dependency packages
+  - no external pkg repository required
+  - no ports tree fetch/build required
+- Split package assets are also published for advanced/manual installs.
 - Enable, disable, start, stop, reload, restart, and check `pdns` from native OPNsense service controls.
 - Render and manage `/usr/local/etc/pdns/pdns.conf`.
 - Configure core PowerDNS settings:
@@ -64,6 +69,7 @@ src/opnsense/
 scripts/
   bootstrap-opnsense.sh
   install-powerdns-opnsense.sh
+  build-all-in-one-pkg.sh
   build-opnsense-pkg.sh
   build-powerdns-binary-bundle.sh
 tests/
@@ -71,7 +77,30 @@ tests/
 
 ## Quick install on OPNsense
 
-Run as root on OPNsense:
+Download the all-in-one package and install it:
+
+```sh
+fetch -o /tmp/os-powerdns-authoritative-all-in-one.pkg https://github.com/lafouffe/os-powerdns-authoritative/releases/download/v0.1.9/os-powerdns-authoritative-all-in-one-0.1.9.pkg
+pkg add -f /tmp/os-powerdns-authoritative-all-in-one.pkg
+```
+
+The all-in-one package contains the plugin plus PowerDNS/dependency binary packages. It does not need a custom pkg repository and does not compile ports.
+
+Because `pkg(8)` keeps its database locked while post-install scripts run, the all-in-one package starts a deferred local installer automatically. Watch progress with:
+
+```sh
+tail -f /var/log/os-powerdns-authoritative-install.log
+```
+
+The menu appears under:
+
+```text
+Services > PowerDNS Authoritative
+```
+
+## Bootstrap one-liner
+
+The bootstrap script now defaults to installing the all-in-one package. If an older split plugin package (`os-powerdns-authoritative`) is installed, the bootstrap removes it first to avoid file-ownership conflicts, then installs the all-in-one package.
 
 ```sh
 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
@@ -83,37 +112,25 @@ If `curl` is installed:
 curl -fsSL https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
-The bootstrap script defaults to packaged install mode:
-
-1. downloads the release PowerDNS binary bundle and installs the included `.pkg` files when `pdns_server` is missing,
-2. downloads and installs the plugin `.pkg`,
-3. prepares the SQLite database and safe baseline `pdns.conf`,
-4. restarts `configd` and the web GUI.
-
 Useful overrides:
 
 ```sh
-# Install plugin only, without installing/preparing PowerDNS
-INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
-
 # Install a specific release
-VERSION=v0.1.8 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.9 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+
+# Use split assets instead of the all-in-one package
+INSTALL_METHOD=split fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Legacy archive/manual-copy install path, kept as a fallback
 INSTALL_METHOD=archive fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
-```
-
-The menu appears under:
-
-```text
-Services > PowerDNS Authoritative
 ```
 
 ## Release assets
 
 Current releases publish:
 
-- `os-powerdns-authoritative-X.Y.Z.pkg` — OPNsense plugin package.
+- `os-powerdns-authoritative-all-in-one-X.Y.Z.pkg` — one-file install: plugin + embedded PowerDNS/dependency packages.
+- `os-powerdns-authoritative-X.Y.Z.pkg` — plugin-only package.
 - `powerdns-binary-bundle-OPNsense-26.1-amd64-vX.Y.Z.tar.gz` — bundled binary packages for PowerDNS and direct runtime dependencies.
 - `os-powerdns-authoritative.tgz` — legacy source/archive fallback.
 
@@ -136,23 +153,15 @@ The helper script:
 - does not configure site-specific IPs, zones, API ACLs, firewall rules, or registrar delegation
 - does not start PowerDNS by default
 
-Useful environment variables:
-
-```sh
-PDNS_DB=/var/db/pdns/pdns.sqlite3 \
-PDNS_CONF=/usr/local/etc/pdns/pdns.conf \
-ENABLE_SERVICE=no \
-sh scripts/install-powerdns-opnsense.sh
-```
-
 ## Build release packages
 
 Local tests can run on Linux, but package/binary asset building must run on matching OPNsense/FreeBSD amd64.
 
 ```sh
 # On OPNsense/FreeBSD from the repository root:
-VERSION=0.1.8 sh scripts/build-opnsense-pkg.sh
-VERSION=v0.1.8 sh scripts/build-powerdns-binary-bundle.sh
+VERSION=0.1.9 sh scripts/build-all-in-one-pkg.sh
+VERSION=0.1.9 sh scripts/build-opnsense-pkg.sh
+VERSION=v0.1.9 sh scripts/build-powerdns-binary-bundle.sh
 ```
 
 Outputs are written to `dist/`.
@@ -192,7 +201,7 @@ The tests cover:
 
 ## Status
 
-Advanced prototype packaged as a GitHub release `.pkg`, not yet submitted to the official OPNsense plugins repository.
+Advanced prototype packaged as GitHub release `.pkg` assets, not yet submitted to the official OPNsense plugins repository.
 
 ## License
 
