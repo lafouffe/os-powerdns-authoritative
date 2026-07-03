@@ -23,7 +23,7 @@ class InstallScriptTest(unittest.TestCase):
 
     def test_bootstrap_defaults_to_all_in_one_pkg(self):
         bootstrap = BOOTSTRAP.read_text()
-        self.assertIn('VERSION="${VERSION:-v0.1.9}"', bootstrap)
+        self.assertIn('VERSION="${VERSION:-v0.1.10}"', bootstrap)
         self.assertIn('INSTALL_METHOD="${INSTALL_METHOD:-all-in-one}"', bootstrap)
         self.assertIn('ALL_IN_ONE_PKG_URL=', bootstrap)
         self.assertIn('os-powerdns-authoritative-all-in-one-${VERSION_NUM}.pkg', bootstrap)

@@ -36,7 +36,7 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
 - Text editor tab for zone-level changes:
   - export RRsets as `name TTL TYPE value` text
   - paste/edit records in a textarea
-  - apply back through the PowerDNS HTTP API while preserving SOA RRsets
+  - apply back through the PowerDNS HTTP API with SOA editing enabled and validated
 
 ## Scope and safety
 
@@ -80,7 +80,7 @@ tests/
 Download the all-in-one package and install it:
 
 ```sh
-fetch -o /tmp/os-powerdns-authoritative-all-in-one.pkg https://github.com/lafouffe/os-powerdns-authoritative/releases/download/v0.1.9/os-powerdns-authoritative-all-in-one-0.1.9.pkg
+fetch -o /tmp/os-powerdns-authoritative-all-in-one.pkg https://github.com/lafouffe/os-powerdns-authoritative/releases/download/v0.1.10/os-powerdns-authoritative-all-in-one-0.1.10.pkg
 pkg add -f /tmp/os-powerdns-authoritative-all-in-one.pkg
 ```
 
@@ -116,7 +116,7 @@ Useful overrides:
 
 ```sh
 # Install a specific release
-VERSION=v0.1.9 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.10 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Use split assets instead of the all-in-one package
 INSTALL_METHOD=split fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
@@ -159,9 +159,9 @@ Local tests can run on Linux, but package/binary asset building must run on matc
 
 ```sh
 # On OPNsense/FreeBSD from the repository root:
-VERSION=0.1.9 sh scripts/build-all-in-one-pkg.sh
-VERSION=0.1.9 sh scripts/build-opnsense-pkg.sh
-VERSION=v0.1.9 sh scripts/build-powerdns-binary-bundle.sh
+VERSION=0.1.10 sh scripts/build-all-in-one-pkg.sh
+VERSION=0.1.10 sh scripts/build-opnsense-pkg.sh
+VERSION=v0.1.10 sh scripts/build-powerdns-binary-bundle.sh
 ```
 
 Outputs are written to `dist/`.

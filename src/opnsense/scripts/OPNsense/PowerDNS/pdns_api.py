@@ -82,7 +82,7 @@ def export_zone_text(zone_data):
         '; PowerDNS text editor export',
         '; Format: name TTL TYPE value',
         '; Empty lines and lines starting with ; are ignored on import.',
-        '; SOA RRsets are exported for visibility but preserved by import.',
+        '; SOA RRsets are editable. Import preserves the existing SOA only if no SOA line is provided.',
         '',
     ]
     count = 0
@@ -126,22 +126,40 @@ def parse_zone_text(zone, text):
             ttl_int = int(ttl)
         except ValueError:
             raise PowerDNSError(f'line {lineno}: invalid TTL {ttl!r}')
-        if rtype == 'SOA':
-            # Preserve SOA managed by PowerDNS. It is shown in exports for visibility.
-            continue
         key = (name, rtype, ttl_int)
         grouped.setdefault(key, []).append(value)
+    validate_soa_rrsets(zone, grouped)
     return grouped
 
 
+def validate_soa_rrsets(zone, grouped):
+    soa_items = [((name, rtype, ttl), records) for (name, rtype, ttl), records in grouped.items() if rtype == 'SOA']
+    if not soa_items:
+        return
+    if len(soa_items) > 1:
+        raise PowerDNSError('SOA validation: only one SOA RRset is allowed per zone')
+    (name, _rtype, _ttl), records = soa_items[0]
+    if name != zone:
+        raise PowerDNSError('SOA validation: SOA name must be the zone apex (%s)' % zone)
+    if len(records) != 1:
+        raise PowerDNSError('SOA validation: exactly one SOA record is allowed')
+    fields = records[0].split()
+    if len(fields) != 7:
+        raise PowerDNSError('SOA validation: expected 7 fields: primary-ns hostmaster serial refresh retry expire minimum')
+    if not fields[0].endswith('.') or not fields[1].endswith('.'):
+        raise PowerDNSError('SOA validation: primary-ns and hostmaster must be absolute names ending with a dot')
+    for label, value in zip(['serial', 'refresh', 'retry', 'expire', 'minimum'], fields[2:]):
+        if not value.isdigit():
+            raise PowerDNSError('SOA validation: %s must be numeric' % label)
+
+
 def import_zone_text(client, zone, text):
+    zone = client.zone_name(zone)
     zone_data = client.get_zone(zone)
     desired = parse_zone_text(zone, text)
     existing = {}
     for rr in zone_data.get('rrsets') or []:
         rtype = (rr.get('type') or '').upper()
-        if rtype == 'SOA':
-            continue
         key = (rr.get('name'), rtype)
         existing[key] = rr
     changes = []
@@ -155,6 +173,8 @@ def import_zone_text(client, zone, text):
         })
     desired_keys = {(name, rtype) for (name, rtype, _ttl) in desired.keys()}
     for (name, rtype), rr in existing.items():
+        if rtype == 'SOA' and (name, rtype) not in desired_keys:
+            continue
         if (name, rtype) not in desired_keys:
             changes.append({'name': name, 'type': rtype, 'changetype': 'DELETE', 'records': []})
     if changes:

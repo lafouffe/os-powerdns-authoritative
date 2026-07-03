@@ -6,7 +6,7 @@
 set -eu
 
 REPO="${REPO:-lafouffe/os-powerdns-authoritative}"
-VERSION="${VERSION:-v0.1.9}"
+VERSION="${VERSION:-v0.1.10}"
 VERSION_NUM="${VERSION#v}"
 WORKDIR="${WORKDIR:-/tmp/os-powerdns-authoritative-install}"
 INSTALL_METHOD="${INSTALL_METHOD:-all-in-one}"

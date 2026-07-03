@@ -87,11 +87,12 @@ class PowerDNSApiClientTest(unittest.TestCase):
         client.delete_zone('new.example.org')
         delete = [r for r in FakePowerDNS.requests if r[0] == 'DELETE'][-1]
         self.assertEqual(delete[1], '/api/v1/servers/localhost/zones/new.example.org.')
-    def test_text_export_quotes_values_and_import_replaces_non_soa_rrsets(self):
+    def test_text_export_quotes_values_and_import_preserves_soa_when_omitted(self):
         mod = self.load_module()
         text, count = mod.export_zone_text(FakePowerDNS.zone)
         self.assertIn('example.org. 300 A 203.0.113.10', text)
         self.assertIn('example.org. 3600 SOA', text)
+        self.assertIn('SOA RRsets are editable', text)
         self.assertEqual(count, 3)
         client = mod.PowerDNSClient(f'http://127.0.0.1:{self.port}', 'secret')
         result = mod.import_zone_text(client, 'example.org.', 'example.org. 300 A 203.0.113.20\nwww.example.org. 300 TXT "hello world"\n')
@@ -102,6 +103,31 @@ class PowerDNSApiClientTest(unittest.TestCase):
         self.assertIn({'name': 'old.example.org.', 'type': 'A', 'changetype': 'DELETE', 'records': []}, rrsets)
         txt = [rr for rr in rrsets if rr['name'] == 'www.example.org.' and rr['type'] == 'TXT'][0]
         self.assertEqual(txt['records'][0]['content'], 'hello world')
+
+    def test_text_import_can_replace_soa_with_validation(self):
+        mod = self.load_module()
+        client = mod.PowerDNSClient(f'http://127.0.0.1:{self.port}', 'secret')
+        result = mod.import_zone_text(
+            client,
+            'example.org.',
+            'example.org. 3600 SOA "ns1.example.org. hostmaster.example.org. 2026070301 3600 600 604800 300"\n'
+            'example.org. 300 A 203.0.113.20\n'
+        )
+        self.assertTrue(result['ok'])
+        patch = [r for r in FakePowerDNS.requests if r[0] == 'PATCH'][-1]
+        rrsets = patch[3]['rrsets']
+        soa = [rr for rr in rrsets if rr['type'] == 'SOA'][0]
+        self.assertEqual(soa['name'], 'example.org.')
+        self.assertEqual(soa['ttl'], 3600)
+        self.assertEqual(soa['changetype'], 'REPLACE')
+        self.assertEqual(soa['records'][0]['content'], 'ns1.example.org. hostmaster.example.org. 2026070301 3600 600 604800 300')
+
+    def test_text_import_rejects_invalid_soa(self):
+        mod = self.load_module()
+        with self.assertRaises(mod.PowerDNSError):
+            mod.parse_zone_text('example.org.', 'www.example.org. 3600 SOA "ns1.example.org. hostmaster.example.org. 1 3600 600 604800 300"\n')
+        with self.assertRaises(mod.PowerDNSError):
+            mod.parse_zone_text('example.org.', 'example.org. 3600 SOA "ns1.example.org hostmaster.example.org. serial 3600 600 604800 300"\n')
 
 if __name__ == '__main__':
     unittest.main()
