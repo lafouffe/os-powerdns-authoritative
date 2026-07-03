@@ -15,12 +15,14 @@ class PluginStructureTest(unittest.TestCase):
             'mvc/app/models/OPNsense/PowerDNS/ACL/ACL.xml',
             'mvc/app/controllers/OPNsense/PowerDNS/GeneralController.php',
             'mvc/app/controllers/OPNsense/PowerDNS/ZonesController.php',
+            'mvc/app/controllers/OPNsense/PowerDNS/TextController.php',
             'mvc/app/controllers/OPNsense/PowerDNS/Api/GeneralController.php',
             'mvc/app/controllers/OPNsense/PowerDNS/Api/ServiceController.php',
             'mvc/app/controllers/OPNsense/PowerDNS/Api/ZonesController.php',
             'mvc/app/controllers/OPNsense/PowerDNS/forms/general.xml',
             'mvc/app/views/OPNsense/PowerDNS/general.volt',
             'mvc/app/views/OPNsense/PowerDNS/zones.volt',
+            'mvc/app/views/OPNsense/PowerDNS/text.volt',
             'service/conf/actions.d/actions_powerdns.conf',
             'scripts/OPNsense/PowerDNS/render_config.py',
             'scripts/OPNsense/PowerDNS/autoconfigure.py',
@@ -49,7 +51,7 @@ class PluginStructureTest(unittest.TestCase):
 
     def test_service_actions_cover_config_and_lifecycle(self):
         actions = (SRC / 'service/conf/actions.d/actions_powerdns.conf').read_text()
-        for action in ['autoconfigure','render','checkconfig','start','stop','restart','status','reload','backupdb','filterreload','zones','zone','createzone','deletezone','upsert','delete']:
+        for action in ['autoconfigure','render','checkconfig','start','stop','restart','status','reload','backupdb','filterreload','zones','zone','createzone','deletezone','upsert','delete','exporttext','importtext']:
             self.assertIn(f'[{action}]', actions)
 
     def test_zones_view_has_basic_record_editor(self):
@@ -68,10 +70,29 @@ class PluginStructureTest(unittest.TestCase):
         self.assertIn('frm_general_settings', view)
         self.assertNotIn('frm_powerdns_settings', view)
         self.assertIn('/ui/powerdns/zones/index', view)
+        self.assertIn('/ui/powerdns/text/index', view)
+        self.assertIn('btn-toolbar', view)
+        self.assertIn('fa fa-fw fa-play', view)
+        self.assertIn('fa fa-fw fa-repeat', view)
+        self.assertIn('fa fa-fw fa-stop', view)
+        self.assertIn('serviceStatusText', view)
         form = (SRC / 'mvc/app/controllers/OPNsense/PowerDNS/forms/general.xml').read_text()
         self.assertIn('general.enabled', form)
         self.assertIn('<type>text</type><help>Stored in OPNsense config; visible here', form)
         self.assertNotIn('powerdns.enabled', form)
+
+    def test_text_edit_view_and_api_are_wired(self):
+        view = (SRC / 'mvc/app/views/OPNsense/PowerDNS/text.volt').read_text()
+        api = (SRC / 'mvc/app/controllers/OPNsense/PowerDNS/Api/ZonesController.php').read_text()
+        menu = (SRC / 'mvc/app/models/OPNsense/PowerDNS/Menu/Menu.xml').read_text()
+        script = (SRC / 'scripts/OPNsense/PowerDNS/pdns_api.py').read_text()
+        for needle in ['zoneTextEditor', 'exportText', 'importText', 'Apply text', '/ui/powerdns/text/index']:
+            self.assertIn(needle, view)
+        self.assertIn('exportTextAction', api)
+        self.assertIn('importTextAction', api)
+        self.assertIn('VisibleName="Text edit"', menu)
+        self.assertIn('export-text', script)
+        self.assertIn('import-text', script)
 
 if __name__ == '__main__':
     unittest.main()

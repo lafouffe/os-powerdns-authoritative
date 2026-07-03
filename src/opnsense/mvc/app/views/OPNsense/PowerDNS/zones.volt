@@ -203,6 +203,7 @@ $(document).ready(function(){
 <ul class="nav nav-tabs" role="tablist">
   <li><a href="/ui/powerdns/general/index">Settings</a></li>
   <li class="active"><a href="/ui/powerdns/zones/index">Zones</a></li>
+  <li><a href="/ui/powerdns/text/index">Text edit</a></li>
 </ul>
 <div class="content-box">
   <div class="pdns-toolbar">

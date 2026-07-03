@@ -56,4 +56,16 @@ class ZonesController extends ApiControllerBase
         $type = $this->request->getPost('type');
         return $this->runJson(array('delete', $zone, $name, $type));
     }
+
+    public function exportTextAction($zone = null)
+    {
+        return $this->runJson(array('exporttext', $zone));
+    }
+
+    public function importTextAction()
+    {
+        $zone = $this->request->getPost('zone');
+        $text = $this->request->getPost('text');
+        return $this->runJson(array('importtext', $zone, $text));
+    }
 }

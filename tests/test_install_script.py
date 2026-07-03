@@ -6,16 +6,25 @@ INSTALL = ROOT / 'scripts/install-powerdns-opnsense.sh'
 README = ROOT / 'README.md'
 
 class InstallScriptTest(unittest.TestCase):
-    def test_powerdns_is_installed_from_opnsense_ports_not_pkg(self):
+    def test_powerdns_install_is_minimal_first_and_ports_are_opt_in(self):
         script = INSTALL.read_text()
-        self.assertNotIn('pkg install -y powerdns', script)
+        bootstrap = (ROOT / 'scripts/bootstrap-opnsense.sh').read_text()
+        self.assertIn('INSTALL_POWERDNS="${INSTALL_POWERDNS:-auto}"', script)
+        self.assertIn('INSTALL_POWERDNS="${INSTALL_POWERDNS:-auto}"', bootstrap)
+        self.assertIn('INSTALL_POWERDNS="$INSTALL_POWERDNS" sh', bootstrap)
+        self.assertIn('TRY_PKG="${TRY_PKG:-yes}"', script)
+        self.assertIn('PORTS_FETCH="${PORTS_FETCH:-no}"', script)
+        self.assertIn('pkg install -y powerdns', script)
+        self.assertIn('INSTALL_POWERDNS=ports PORTS_FETCH=yes', script)
         self.assertIn('opnsense-code ports', script)
-        self.assertIn('/usr/ports/dns/powerdns', script)
         self.assertIn('make -C "$PDNS_PORT_DIR"', script)
+        self.assertNotIn('PORTS_FETCH="${PORTS_FETCH:-yes}"', script)
 
-    def test_readme_mentions_ports_based_powerdns_install(self):
+    def test_readme_mentions_minimal_first_install(self):
         readme = README.read_text().lower()
-        self.assertIn('powerdns is installed from the opnsense ports tree', readme)
+        self.assertIn('minimal-first', readme)
+        self.assertIn('no longer fetches/builds the full opnsense ports tree automatically', readme)
+        self.assertIn('install_powerdns=ports ports_fetch=yes', readme)
 
 if __name__ == '__main__':
     unittest.main()

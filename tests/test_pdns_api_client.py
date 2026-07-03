@@ -13,7 +13,11 @@ class FakePowerDNS(http.server.BaseHTTPRequestHandler):
     requests = []
     zone = {
         'id':'example.org.', 'name':'example.org.', 'kind':'Master',
-        'rrsets':[{'name':'example.org.','type':'A','ttl':300,'records':[{'content':'203.0.113.10','disabled':False}]}]
+        'rrsets':[
+            {'name':'example.org.','type':'SOA','ttl':3600,'records':[{'content':'ns1.example.org. hostmaster.example.org. 1 3600 600 604800 300','disabled':False}]},
+            {'name':'example.org.','type':'A','ttl':300,'records':[{'content':'203.0.113.10','disabled':False}]},
+            {'name':'old.example.org.','type':'A','ttl':300,'records':[{'content':'203.0.113.11','disabled':False}]},
+        ]
     }
     def log_message(self, *args):
         pass
@@ -50,6 +54,8 @@ class PowerDNSApiClientTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.httpd.shutdown()
+    def setUp(self):
+        FakePowerDNS.requests.clear()
     def load_module(self):
         spec = importlib.util.spec_from_file_location('pdns_api', CLIENT)
         mod = importlib.util.module_from_spec(spec)
@@ -81,6 +87,21 @@ class PowerDNSApiClientTest(unittest.TestCase):
         client.delete_zone('new.example.org')
         delete = [r for r in FakePowerDNS.requests if r[0] == 'DELETE'][-1]
         self.assertEqual(delete[1], '/api/v1/servers/localhost/zones/new.example.org.')
+    def test_text_export_quotes_values_and_import_replaces_non_soa_rrsets(self):
+        mod = self.load_module()
+        text, count = mod.export_zone_text(FakePowerDNS.zone)
+        self.assertIn('example.org. 300 A 203.0.113.10', text)
+        self.assertIn('example.org. 3600 SOA', text)
+        self.assertEqual(count, 3)
+        client = mod.PowerDNSClient(f'http://127.0.0.1:{self.port}', 'secret')
+        result = mod.import_zone_text(client, 'example.org.', 'example.org. 300 A 203.0.113.20\nwww.example.org. 300 TXT "hello world"\n')
+        self.assertTrue(result['ok'])
+        patch = [r for r in FakePowerDNS.requests if r[0] == 'PATCH'][-1]
+        rrsets = patch[3]['rrsets']
+        self.assertFalse(any(rr['type'] == 'SOA' for rr in rrsets))
+        self.assertIn({'name': 'old.example.org.', 'type': 'A', 'changetype': 'DELETE', 'records': []}, rrsets)
+        txt = [rr for rr in rrsets if rr['name'] == 'www.example.org.' and rr['type'] == 'TXT'][0]
+        self.assertEqual(txt['records'][0]['content'], 'hello world')
 
 if __name__ == '__main__':
     unittest.main()

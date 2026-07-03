@@ -6,10 +6,10 @@
 set -eu
 
 REPO="${REPO:-lafouffe/os-powerdns-authoritative}"
-VERSION="${VERSION:-v0.1.4}"
+VERSION="${VERSION:-v0.1.5}"
 ARCHIVE_URL="${ARCHIVE_URL:-https://github.com/${REPO}/releases/download/${VERSION}/os-powerdns-authoritative.tgz}"
 WORKDIR="${WORKDIR:-/tmp/os-powerdns-authoritative-install}"
-INSTALL_POWERDNS="${INSTALL_POWERDNS:-yes}"
+INSTALL_POWERDNS="${INSTALL_POWERDNS:-auto}"
 RESTART_WEBGUI="${RESTART_WEBGUI:-yes}"
 
 log() { printf '%s\n' "$*"; }
@@ -45,12 +45,15 @@ run mkdir -p "$WORKDIR"
 fetch_url "$ARCHIVE_URL" "$WORKDIR/os-powerdns-authoritative.tgz"
 run tar -xzf "$WORKDIR/os-powerdns-authoritative.tgz" -C "$WORKDIR" --strip-components 1
 
-if [ "$INSTALL_POWERDNS" = "yes" ]; then
-  log "Installing/preparing PowerDNS Authoritative"
-  sh "$WORKDIR/scripts/install-powerdns-opnsense.sh"
-else
-  log "Skipping PowerDNS package/config bootstrap because INSTALL_POWERDNS=$INSTALL_POWERDNS"
-fi
+case "$INSTALL_POWERDNS" in
+  no|false|skip)
+    log "Skipping PowerDNS package/config bootstrap because INSTALL_POWERDNS=$INSTALL_POWERDNS"
+    ;;
+  *)
+    log "Installing/preparing PowerDNS Authoritative with INSTALL_POWERDNS=$INSTALL_POWERDNS"
+    INSTALL_POWERDNS="$INSTALL_POWERDNS" sh "$WORKDIR/scripts/install-powerdns-opnsense.sh"
+    ;;
+esac
 
 log "Installing OPNsense MVC plugin files"
 run mkdir -p \

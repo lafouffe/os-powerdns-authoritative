@@ -6,7 +6,7 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
 
 ## Features
 
-- Enable, disable, start, stop, restart, and check `pdns` from the OPNsense GUI.
+- Enable, disable, start, stop, reload, restart, and check `pdns` from an OPNsense-style action toolbar.
 - Render and manage `/usr/local/etc/pdns/pdns.conf`.
 - Configure core PowerDNS settings:
   - backend (`gsqlite3` or `bind`)
@@ -24,6 +24,10 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
   - list/create/delete zones
   - list RRsets
   - add/edit/delete RRsets
+- Text editor tab for zone-level changes:
+  - export RRsets as `name TTL TYPE value` text
+  - paste/edit records in a textarea
+  - apply back through the PowerDNS HTTP API while preserving SOA RRsets
 
 ## Scope and safety
 
@@ -81,7 +85,7 @@ Useful overrides:
 INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Install a specific release
-VERSION=v0.1.4 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.5 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
 The menu appears under:
@@ -100,10 +104,12 @@ sh scripts/install-powerdns-opnsense.sh
 
 The helper script:
 
-PowerDNS is installed from the OPNsense ports tree to avoid package-repository mismatch errors on OPNsense.
+PowerDNS is prepared in a minimal-first way:
 
-- installs `sqlite3` via `pkg`
-- installs PowerDNS from the OPNsense ports tree (`opnsense-code ports`, then `/usr/ports/dns/powerdns`)
+- if `pdns_server` already exists, no package/ports install is attempted
+- default `INSTALL_POWERDNS=auto` tries the lightweight package path first (`pkg install -y powerdns`)
+- the script no longer fetches/builds the full OPNsense ports tree automatically
+- ports builds are explicit only: `INSTALL_POWERDNS=ports PORTS_FETCH=yes`
 - creates a generic SQLite backend database if missing
 - writes a safe localhost-only baseline `pdns.conf` if missing
 - does not configure site-specific IPs, zones, API ACLs, firewall rules, or registrar delegation

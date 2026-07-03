@@ -1,11 +1,12 @@
 #!/usr/local/bin/python3
 import argparse
 import json
+import shlex
 import sys
 import urllib.error
 import urllib.parse
 import urllib.request
-from pathlib import Path
+from collections import OrderedDict
 try:
     from render_config import load_config_xml
 except Exception:
@@ -63,6 +64,103 @@ class PowerDNSClient:
         name = self.zone_name(name)
         rrset = {'name': name, 'type': rtype.upper(), 'changetype': 'DELETE', 'records': []}
         return self.request('PATCH', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}', {'rrsets':[rrset]})
+    def patch_rrsets(self, zone, rrsets):
+        zone = self.zone_name(zone)
+        return self.request('PATCH', f'/servers/{self.server}/zones/{urllib.parse.quote(zone)}', {'rrsets': rrsets})
+
+
+def quote_record_content(value):
+    value = '' if value is None else str(value)
+    if any(ch.isspace() for ch in value) or value == '' or ';' in value or '"' in value:
+        return shlex.quote(value)
+    return value
+
+
+def export_zone_text(zone_data):
+    rrsets = sorted(zone_data.get('rrsets') or [], key=lambda r: ((r.get('name') or ''), (r.get('type') or '')))
+    lines = [
+        '; PowerDNS text editor export',
+        '; Format: name TTL TYPE value',
+        '; Empty lines and lines starting with ; are ignored on import.',
+        '; SOA RRsets are exported for visibility but preserved by import.',
+        '',
+    ]
+    count = 0
+    for rr in rrsets:
+        name = rr.get('name') or ''
+        ttl = rr.get('ttl') or 300
+        rtype = (rr.get('type') or '').upper()
+        records = rr.get('records') or []
+        if not records:
+            lines.append(f'; {name} {ttl} {rtype}')
+            continue
+        for record in records:
+            if record.get('disabled'):
+                lines.append('; disabled: ' + ' '.join([name, str(ttl), rtype, quote_record_content(record.get('content', ''))]))
+            else:
+                lines.append(' '.join([name, str(ttl), rtype, quote_record_content(record.get('content', ''))]))
+                count += 1
+    return '\n'.join(lines) + '\n', count
+
+
+def parse_zone_text(zone, text):
+    grouped = OrderedDict()
+    zone = zone if zone.endswith('.') else zone + '.'
+    for lineno, raw in enumerate((text or '').splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith(';'):
+            continue
+        try:
+            parts = shlex.split(line, comments=False, posix=True)
+        except ValueError as exc:
+            raise PowerDNSError(f'line {lineno}: {exc}')
+        if len(parts) < 4:
+            raise PowerDNSError(f'line {lineno}: expected name TTL TYPE value')
+        name, ttl, rtype = parts[0], parts[1], parts[2].upper()
+        value = ' '.join(parts[3:])
+        if name == '@':
+            name = zone
+        elif not name.endswith('.'):
+            name = name + '.'
+        try:
+            ttl_int = int(ttl)
+        except ValueError:
+            raise PowerDNSError(f'line {lineno}: invalid TTL {ttl!r}')
+        if rtype == 'SOA':
+            # Preserve SOA managed by PowerDNS. It is shown in exports for visibility.
+            continue
+        key = (name, rtype, ttl_int)
+        grouped.setdefault(key, []).append(value)
+    return grouped
+
+
+def import_zone_text(client, zone, text):
+    zone_data = client.get_zone(zone)
+    desired = parse_zone_text(zone, text)
+    existing = {}
+    for rr in zone_data.get('rrsets') or []:
+        rtype = (rr.get('type') or '').upper()
+        if rtype == 'SOA':
+            continue
+        key = (rr.get('name'), rtype)
+        existing[key] = rr
+    changes = []
+    for (name, rtype, ttl), records in desired.items():
+        changes.append({
+            'name': name,
+            'type': rtype,
+            'ttl': ttl,
+            'changetype': 'REPLACE',
+            'records': [{'content': r, 'disabled': False} for r in records],
+        })
+    desired_keys = {(name, rtype) for (name, rtype, _ttl) in desired.keys()}
+    for (name, rtype), rr in existing.items():
+        if (name, rtype) not in desired_keys:
+            changes.append({'name': name, 'type': rtype, 'changetype': 'DELETE', 'records': []})
+    if changes:
+        client.patch_rrsets(zone, changes)
+    return {'ok': True, 'changed_rrsets': len(changes)}
+
 
 def client_from_config(path='/conf/config.xml'):
     if load_config_xml is None:
@@ -77,6 +175,8 @@ def main(argv=None):
     sub = p.add_subparsers(dest='cmd', required=True)
     sub.add_parser('zones')
     z = sub.add_parser('zone'); z.add_argument('zone')
+    xt = sub.add_parser('export-text'); xt.add_argument('zone')
+    it = sub.add_parser('import-text'); it.add_argument('zone'); it.add_argument('text')
     cz = sub.add_parser('create-zone'); cz.add_argument('zone'); cz.add_argument('kind'); cz.add_argument('nameservers', nargs='?', default='')
     dz = sub.add_parser('delete-zone'); dz.add_argument('zone')
     u = sub.add_parser('upsert'); u.add_argument('zone'); u.add_argument('name'); u.add_argument('type'); u.add_argument('ttl'); u.add_argument('records')
@@ -86,6 +186,10 @@ def main(argv=None):
     try:
         if args.cmd == 'zones': out = c.list_zones()
         elif args.cmd == 'zone': out = c.get_zone(args.zone)
+        elif args.cmd == 'export-text':
+            text, count = export_zone_text(c.get_zone(args.zone))
+            out = {'zone': c.zone_name(args.zone), 'text': text, 'count': count}
+        elif args.cmd == 'import-text': out = import_zone_text(c, args.zone, args.text)
         elif args.cmd == 'create-zone': out = c.create_zone(args.zone, args.kind, args.nameservers)
         elif args.cmd == 'delete-zone': out = c.delete_zone(args.zone)
         elif args.cmd == 'upsert': out = c.upsert_rrset(args.zone, args.name, args.type, args.ttl, [x.strip() for x in args.records.split('\n') if x.strip()])
