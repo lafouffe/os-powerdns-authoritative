@@ -9,9 +9,6 @@
         <listen_interfaces type="InterfaceField"><Required>N</Required><Multiple>Y</Multiple></listen_interfaces>
         <local_address type="TextField"><Required>N</Required></local_address>
         <local_port type="PortField"><Default>53</Default><Required>Y</Required></local_port>
-        <setuid type="TextField"><Default>pdns</Default><Required>Y</Required></setuid>
-        <setgid type="TextField"><Default>pdns</Default><Required>Y</Required></setgid>
-        <loglevel type="IntegerField"><Default>4</Default><MinimumValue>0</MinimumValue><MaximumValue>9</MaximumValue><Required>Y</Required></loglevel>
         <webserver type="BooleanField"><Default>1</Default><Required>Y</Required></webserver>
         <webserver_address type="NetworkField"><Default>127.0.0.1</Default><Required>Y</Required><NetMaskAllowed>N</NetMaskAllowed></webserver_address>
         <webserver_port type="PortField"><Default>8081</Default><Required>Y</Required></webserver_port>

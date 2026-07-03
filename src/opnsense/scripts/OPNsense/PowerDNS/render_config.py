@@ -12,9 +12,15 @@ BOOL_TRUE = {'1','true','yes','on','Y','y'}
 BLOCKED_EXTRA = {'include-dir','include-file','config-dir','config-name'}
 DEFAULTS = {
     'enabled':'1','launch':'gsqlite3','gsqlite3_database':'/var/db/pdns/pdns.sqlite3',
-    'listen_interfaces':'','local_address':'','local_port':'53','setuid':'pdns','setgid':'pdns',
-    'loglevel':'4','webserver':'1','webserver_address':'127.0.0.1','webserver_port':'8081',
+    'listen_interfaces':'','local_address':'','local_port':'53',
+    'webserver':'1','webserver_address':'127.0.0.1','webserver_port':'8081',
     'webserver_allow_from':'127.0.0.1,::1','api':'1','api_key':'','custom_options':''
+}
+
+FIXED_RUNTIME = {
+    'setuid': 'pdns',
+    'setgid': 'pdns',
+    'loglevel': '4',
 }
 
 def yesno(value):
@@ -113,9 +119,9 @@ def render_pdns_conf(cfg, config_path=CONF_XML):
         lines.append('local-address=%s' % listen_addresses)
     lines += [
         'local-port=%s' % cfg['local_port'],
-        'setuid=%s' % cfg['setuid'],
-        'setgid=%s' % cfg['setgid'],
-        'loglevel=%s' % cfg['loglevel'],
+        'setuid=%s' % FIXED_RUNTIME['setuid'],
+        'setgid=%s' % FIXED_RUNTIME['setgid'],
+        'loglevel=%s' % FIXED_RUNTIME['loglevel'],
         '',
         'webserver=%s' % yesno(cfg['webserver']),
     ]

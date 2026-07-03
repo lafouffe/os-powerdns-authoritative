@@ -18,8 +18,8 @@ class RenderConfigTest(unittest.TestCase):
         mod = self.load_module()
         cfg = {
             'enabled':'1', 'launch':'gsqlite3', 'gsqlite3_database':'/var/db/pdns/pdns.sqlite3',
-            'listen_interfaces':'wan', 'local_address':'203.0.113.10', 'local_port':'53', 'setuid':'pdns', 'setgid':'pdns',
-            'loglevel':'4', 'webserver':'1', 'webserver_address':'127.0.0.1', 'webserver_port':'8081',
+            'listen_interfaces':'wan', 'local_address':'203.0.113.10', 'local_port':'53',
+            'webserver':'1', 'webserver_address':'127.0.0.1', 'webserver_port':'8081',
             'webserver_allow_from':'127.0.0.1,::1', 'api':'1', 'api_key':'example-api-key',
             'custom_options':'guardian=yes\nreceiver-threads=1'
         }
@@ -32,6 +32,16 @@ class RenderConfigTest(unittest.TestCase):
             'api=yes', 'api-key=example-api-key', 'guardian=yes', 'receiver-threads=1'
         ]:
             self.assertIn(expected, text)
+
+    def test_runtime_user_group_and_loglevel_are_hardcoded(self):
+        mod = self.load_module()
+        text = mod.render_pdns_conf({'setuid':'root', 'setgid':'wheel', 'loglevel':'9'})
+        self.assertIn('setuid=pdns', text)
+        self.assertIn('setgid=pdns', text)
+        self.assertIn('loglevel=4', text)
+        self.assertNotIn('setuid=root', text)
+        self.assertNotIn('setgid=wheel', text)
+        self.assertNotIn('loglevel=9', text)
 
     def test_render_resolves_selected_interfaces_when_no_manual_address(self):
         mod = self.load_module()

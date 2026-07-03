@@ -14,8 +14,6 @@ This project focuses on running PowerDNS Authoritative directly on OPNsense whil
   - listen interfaces, with current IPv4 resolution
   - optional listen address override
   - local port
-  - service user/group
-  - log level
   - webserver/API address, port, allow-from, and API key
   - automatic API key generation when enabled and empty
   - automatic TCP/UDP DNS firewall rules on selected listen interfaces
@@ -85,7 +83,7 @@ Useful overrides:
 INSTALL_POWERDNS=no fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 
 # Install a specific release
-VERSION=v0.1.6 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
+VERSION=v0.1.7 fetch -qo- https://raw.githubusercontent.com/lafouffe/os-powerdns-authoritative/main/scripts/bootstrap-opnsense.sh | sh
 ```
 
 The menu appears under:

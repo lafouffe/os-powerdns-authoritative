@@ -5,9 +5,6 @@
   <field><id>general.listen_interfaces</id><label>Listen interfaces</label><type>select_multiple</type><style>selectpicker</style><help>Select one or more OPNsense interfaces. Their current IPv4 addresses will be rendered into PowerDNS local-address.</help></field>
   <field><id>general.local_address</id><label>Listen address override</label><type>text</type><help>Optional comma-separated IP addresses. When set, this overrides Listen interfaces. Leave empty for automatic interface-based binding or PowerDNS default binding.</help></field>
   <field><id>general.local_port</id><label>Listen port</label><type>text</type></field>
-  <field><id>general.setuid</id><label>Run as user</label><type>text</type></field>
-  <field><id>general.setgid</id><label>Run as group</label><type>text</type></field>
-  <field><id>general.loglevel</id><label>Log level</label><type>text</type></field>
   <field><id>general.webserver</id><label>API webserver enabled</label><type>checkbox</type></field>
   <field><id>general.webserver_address</id><label>API listen address</label><type>text</type></field>
   <field><id>general.webserver_port</id><label>API listen port</label><type>text</type></field>

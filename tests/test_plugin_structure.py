@@ -35,10 +35,12 @@ class PluginStructureTest(unittest.TestCase):
         xml = (SRC / 'mvc/app/models/OPNsense/PowerDNS/General.xml').read_text()
         for field in [
             'enabled','launch','gsqlite3_database','listen_interfaces','local_address','local_port',
-            'setuid','setgid','loglevel','webserver','webserver_address',
+            'webserver','webserver_address',
             'webserver_port','webserver_allow_from','api','api_key','custom_options'
         ]:
             self.assertRegex(xml, rf'<{field}\b')
+        for hidden_field in ['setuid', 'setgid', 'loglevel']:
+            self.assertNotRegex(xml, rf'<{hidden_field}\b')
 
     def test_readme_has_no_unrelated_acme_references(self):
         readme = (ROOT / 'README.md').read_text().lower()
@@ -84,6 +86,9 @@ class PluginStructureTest(unittest.TestCase):
         self.assertIn('general.enabled', form)
         self.assertIn('<type>text</type><help>Stored in OPNsense config; visible here', form)
         self.assertNotIn('powerdns.enabled', form)
+        self.assertNotIn('general.setuid', form)
+        self.assertNotIn('general.setgid', form)
+        self.assertNotIn('general.loglevel', form)
 
     def test_service_controller_uses_native_mutable_service_contract(self):
         controller = (SRC / 'mvc/app/controllers/OPNsense/PowerDNS/Api/ServiceController.php').read_text()
